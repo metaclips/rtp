@@ -52,12 +52,11 @@ fn benchmark_unmarshal(c: &mut Criterion) {
             ],
             ..Default::default()
         },
-        payload: vec![0x07, 0x08, 0x09, 0x0a],
+        payload: BytesMut::from(&[0x07, 0x08, 0x09, 0x0a][..]),
         ..Default::default()
     };
 
     let mut raw_pkt = pkt.marshal().unwrap();
-
     let mut raw_pkt_clone = raw_pkt.clone();
 
     c.bench_function("Shared Struct", move |b| {

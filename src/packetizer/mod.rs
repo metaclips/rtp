@@ -84,7 +84,7 @@ impl PacketizerInterface for Packetizer {
                 ..Default::default()
             };
 
-            packets[i].payload = pp.to_vec();
+            packets[i].payload = pp.to_owned();
         }
 
         self.timestamp += samples;
