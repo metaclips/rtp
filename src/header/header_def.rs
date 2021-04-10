@@ -372,9 +372,8 @@ impl Header {
 
         let mut no_alloc = 12usize;
 
-        let csrc = self.csrc.clone();
-        for n in csrc {
-            BigEndian::write_u32(&mut buf[no_alloc..no_alloc + 4], n);
+        for n in self.csrc.iter() {
+            BigEndian::write_u32(&mut buf[no_alloc..no_alloc + 4], *n);
             no_alloc += 4;
         }
 
