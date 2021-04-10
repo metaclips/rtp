@@ -15,8 +15,8 @@ const NALU_REF_IDC_BITMASK: u8 = 0x60;
 const FUA_START_BITMASK: u8 = 0x80;
 const ANNEXB_NALUSTART_CODE: [u8; 4] = [0x00, 0x00, 0x00, 0x01];
 
-fn emit_nalus(nals: BytesMut, mut emit: impl FnMut(&BytesMut)) {
-    let next_ind = |nalu: &BytesMut, start: usize| -> (isize, isize) {
+fn emit_nalus(nals: bytes::Bytes, mut emit: impl FnMut(&bytes::Bytes)) {
+    let next_ind = |nalu: &bytes::Bytes, start: usize| -> (isize, isize) {
         let mut zero_count = 0;
 
         for (i, b) in nalu[start..].iter().enumerate() {
@@ -45,12 +45,10 @@ fn emit_nalus(nals: BytesMut, mut emit: impl FnMut(&BytesMut)) {
             next_ind_len = _next_ind_len;
 
             if next_ind_start != -1 {
-                emit(&BytesMut::from(
-                    &nals[prev_start as usize..next_ind_start as usize],
-                ));
+                emit(&nals.slice(prev_start as usize..next_ind_start as usize));
             } else {
                 // Emit until end of stream, no end indicator found
-                emit(&BytesMut::from(&nals[prev_start as usize..]));
+                emit(&nals.slice(prev_start as usize..));
             }
         }
     }

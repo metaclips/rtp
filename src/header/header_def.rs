@@ -170,7 +170,7 @@ impl Header {
     }
 
     /// Unmarshal parses the passed byte slice and stores the result in the Header this method is called upon
-    pub fn unmarshal(&mut self, raw_packet: &mut BytesMut) -> Result<usize, RTPError> {
+    pub fn unmarshal(&mut self, raw_packet: &bytes::Bytes) -> Result<usize, RTPError> {
         /*
          *  0                   1                   2                   3
          *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1

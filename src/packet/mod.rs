@@ -1,6 +1,6 @@
 use crate::errors::RTPError;
 use crate::header::*;
-use bytes::BytesMut;
+use bytes::{Bytes, BytesMut};
 use std::fmt;
 
 mod packet_test;
@@ -10,7 +10,7 @@ mod packet_test;
 #[derive(Debug, Eq, PartialEq, Clone, Default)]
 pub struct Packet {
     pub header: Header,
-    pub payload: BytesMut,
+    pub payload: Bytes,
 }
 
 impl fmt::Display for Packet {
@@ -35,17 +35,16 @@ impl Packet {
     }
 
     /// Unmarshal parses the passed byte slice and stores the result in the Header this method is called upon
-    #[inline]
-    pub fn unmarshal(&mut self, buf: &mut BytesMut) -> Result<(), RTPError> {
+    pub fn unmarshal(&mut self, buf: &bytes::Bytes) -> Result<(), RTPError> {
         let size = self.header.unmarshal(buf)?;
 
-        self.payload = BytesMut::from(&buf[size..]);
+        self.payload = buf.clone();
+        self.payload.truncate(size);
 
         Ok(())
     }
 
     /// MarshalSize returns the size of the packet once marshaled.
-    #[inline]
     pub fn marshal_size(&mut self) -> usize {
         self.header.marshal_size() + self.payload.len()
     }
@@ -64,9 +63,8 @@ impl Packet {
     }
 
     /// Marshal serializes the packet into bytes.
-    #[inline]
     pub fn marshal(&mut self) -> Result<BytesMut, RTPError> {
-        let mut buf = BytesMut::new();
+        let mut buf = BytesMut::with_capacity(self.marshal_size());
         buf.resize(self.marshal_size(), 0u8);
 
         let size = self.marshal_to(&mut buf)?;

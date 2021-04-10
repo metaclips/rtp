@@ -13,7 +13,7 @@ pub struct H264Payloader;
 
 /// Payload fragments a H264 packet across one or more byte arrays
 impl Payloader for H264Payloader {
-    fn payload(&self, mtu: u16, payload: BytesMut) -> Vec<BytesMut> {
+    fn payload(&self, mtu: u16, payload: bytes::Bytes) -> Vec<bytes::Bytes> {
         let mut payloads = vec![];
 
         if payload.is_empty() {
@@ -34,10 +34,10 @@ impl Payloader for H264Payloader {
 
             // Single NALU
             if nalu.len() <= mtu as usize {
-                let mut out = BytesMut::new();
+                let mut out = BytesMut::with_capacity(nalu.len());
                 out.resize(nalu.len(), 0u8);
                 out.copy_from_slice(&nalu);
-                payloads.push(out);
+                payloads.push(out.into());
                 return;
             }
 
@@ -68,7 +68,8 @@ impl Payloader for H264Payloader {
 
             while nalu_data_remaining > 0 {
                 let current_fragment_size = (max_fragment_size as usize).min(nalu_data_remaining);
-                let mut out = BytesMut::new();
+                let mut out =
+                    BytesMut::with_capacity(super::FUA_HEADER_SIZE + current_fragment_size);
                 out.resize(super::FUA_HEADER_SIZE + current_fragment_size, 0u8);
 
                 // +---------------+
@@ -100,7 +101,7 @@ impl Payloader for H264Payloader {
                         &nalu_data[nalu_data_index..nalu_data_index + current_fragment_size],
                     );
 
-                payloads.push(out);
+                payloads.push(out.into());
 
                 nalu_data_remaining -= current_fragment_size;
                 nalu_data_index += current_fragment_size;

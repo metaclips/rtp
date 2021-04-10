@@ -6,27 +6,27 @@ use webrtc_rs_rtp::{
 };
 
 fn benchmark_marshal(c: &mut Criterion) {
-    let raw_pkt = vec![
+    let raw_pkt = bytes::Bytes::from_static(&[
         0x90u8, 0x60, 0x69, 0x8f, 0xd9, 0xc2, 0x93, 0xda, 0x1c, 0x64, 0x27, 0x82, 0x00, 0x01, 0x00,
         0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0x98, 0x36, 0xbe, 0x88, 0x9e,
-    ];
+    ]);
 
     let mut p = Packet::default();
-    p.unmarshal(&mut raw_pkt[..].into()).unwrap();
+    p.unmarshal(&raw_pkt).unwrap();
 
     c.bench_function("Marshal Benchmark", |b| b.iter(|| p.marshal().unwrap()));
 }
 
 fn benchmark_marshal_to(c: &mut Criterion) {
-    let raw_pkt = vec![
+    let raw_pkt = bytes::Bytes::from_static(&[
         0x90, 0x60, 0x69, 0x8f, 0xd9, 0xc2, 0x93, 0xda, 0x1c, 0x64, 0x27, 0x82, 0x00, 0x01, 0x00,
         0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0x98, 0x36, 0xbe, 0x88, 0x9e,
-    ];
+    ]);
 
     let mut p = Packet::default();
-    p.unmarshal(&mut raw_pkt[..].into()).unwrap();
+    p.unmarshal(&raw_pkt).unwrap();
 
-    let mut buf = BytesMut::new();
+    let mut buf = BytesMut::with_capacity(100);
     buf.resize(100, 0u8);
 
     c.bench_function("Marshal_To Benchmark", move |b| {
@@ -52,21 +52,21 @@ fn benchmark_unmarshal(c: &mut Criterion) {
             ],
             ..Default::default()
         },
-        payload: BytesMut::from(&[0x07, 0x08, 0x09, 0x0a][..]),
+        payload: bytes::Bytes::from_static(&[0x07, 0x08, 0x09, 0x0a][..]),
         ..Default::default()
     };
 
-    let mut raw_pkt = pkt.marshal().unwrap();
-    let mut raw_pkt_clone = raw_pkt.clone();
+    let raw_pkt: bytes::Bytes = pkt.marshal().unwrap().into();
+    let raw_pkt_clone: bytes::Bytes = raw_pkt.clone();
 
     c.bench_function("Shared Struct", move |b| {
-        b.iter(|| pkt.unmarshal(&mut raw_pkt).unwrap())
+        b.iter(|| pkt.unmarshal(&raw_pkt).unwrap())
     });
 
     c.bench_function("New Struct", move |b| {
         b.iter(|| {
             let mut p = Packet::default();
-            p.unmarshal(&mut raw_pkt_clone).unwrap();
+            p.unmarshal(&raw_pkt_clone).unwrap();
         })
     });
 }
