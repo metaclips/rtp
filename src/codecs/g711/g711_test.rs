@@ -17,7 +17,7 @@ mod tests {
         samples_in.clone_from_slice(&samples);
 
         // split our samples into payloads
-        let payloads = pck.payload(TEST_MTU, bytes::Bytes::from_static(&[0; TEST_LEN]));
+        let payloads = pck.payload(TEST_MTU, samples_in.clone().into());
 
         let outcnt = ((TEST_LEN as f64) / (TEST_MTU as f64)).ceil() as usize;
         assert_eq!(
@@ -29,13 +29,14 @@ mod tests {
         );
         assert_eq!(&samples, &samples_in, "Modified input samples");
 
-        let samples_out = payloads.concat();
+        let samples_out = payloads.join(bytes::BytesMut::default().as_ref());
         assert_eq!(&samples_out, &samples_in, "Output samples don't match");
 
         // Positive MTU, empty payload
         let result = pck.payload(1, bytes::Bytes::new());
         assert!(result.is_empty(), "Generated payload should be empty");
 
+        let a = [0u8; 0];
         // 0 MTU, small payload
         let result = pck.payload(0, bytes::Bytes::from_static(&[0x90, 0x90, 0x90]));
         assert!(result.is_empty(), "Generated payload should be empty");
