@@ -39,7 +39,7 @@ impl Packet {
         let size = self.header.unmarshal(buf)?;
 
         self.payload = buf.clone();
-        self.payload.truncate(size);
+        self.payload = self.payload.split_off(size);
 
         Ok(())
     }

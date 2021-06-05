@@ -1,74 +1,97 @@
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
 
-    // use std::collections::HashMap;
+    use crate::packet::*;
 
-    // use crate::packet::*;
+    #[test]
+    fn test_basic() -> Result<(), RTPError> {
+        let mut p = Packet::default();
 
-    // #[test]
-    // fn test_basic() -> Result<(), RTPError> {
-    //     let mut p = Packet::default();
+        let result = p.unmarshal(&mut Bytes::new());
+        assert!(result.is_err());
 
-    //     let result = p.unmarshal(&mut BytesMut::new());
-    //     assert!(result.is_err());
+        let data = &[
+            0x90, 0xe0, 0x69, 0x8f, 0xd9, 0xc2, 0x93, 0xda, 0x1c, 0x64, 0x27, 0x82, 0x00, 0x01,
+            0x00, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0x98, 0x36, 0xbe, 0x88, 0x9e,
+        ];
 
-    //     let raw_pkt = vec![
-    //         0x90, 0xe0, 0x69, 0x8f, 0xd9, 0xc2, 0x93, 0xda, 0x1c, 0x64, 0x27, 0x82, 0x00, 0x01,
-    //         0x00, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0x98, 0x36, 0xbe, 0x88, 0x9e,
-    //     ];
+        let raw_pkt = BytesMut::from(&data[..]);
 
-    //     let parsed_packet = Packet {
-    //         header: Header {
-    //             version: 2,
-    //             extension: true,
-    //             marker: true,
-    //             payload_type: 96,
-    //             sequence_number: 27023,
-    //             timestamp: 3653407706,
-    //             ssrc: 476325762,
-    //             csrc: vec![],
-    //             extension_profile: 1,
-    //             extensions: vec![Extension {
-    //                 id: 0,
-    //                 payload: vec![0xFF, 0xFF, 0xFF, 0xFF].as_slice().into(),
-    //             }],
-    //             ..Default::default()
-    //         },
-    //         payload: raw_pkt[20..].into(),
-    //         ..Default::default()
-    //     };
+        let payload = Bytes::from_static(&data[20..]);
 
-    //     // Unmarshal to the used Packet should work as well.
-    //     p.unmarshal(&mut raw_pkt[..].into())?;
-    //     assert_eq!(
-    //         p, parsed_packet,
-    //         "TestBasic unmarshal: got {}, want {}",
-    //         p, parsed_packet
-    //     );
+        let parsed_packet = Packet {
+            header: Header {
+                version: 2,
+                extension: true,
+                marker: true,
+                payload_type: 96,
+                sequence_number: 27023,
+                timestamp: 3653407706,
+                ssrc: 476325762,
+                csrc: vec![],
+                extension_profile: 1,
+                extensions: vec![Extension {
+                    id: 0,
+                    payload: BytesMut::from(&[0xFF, 0xFF, 0xFF, 0xFF][..]),
+                }],
+                ..Default::default()
+            },
+            payload: payload,
+            ..Default::default()
+        };
 
-    //     assert_eq!(
-    //         p.marshal_size(),
-    //         raw_pkt.len(),
-    //         "wrong computed marshal size"
-    //     );
+        // Unmarshal to the used Packet should work as well.
+        p.unmarshal(&raw_pkt.clone().freeze())?;
 
-    //     let raw = p.marshal()?;
+        assert_eq!(
+            parsed_packet, p,
+            "TestBasic unmarshal: got {}, want {}",
+            p, parsed_packet
+        );
 
-    //     assert_eq!(
-    //         raw.len(),
-    //         raw_pkt.len(),
-    //         "wrong raw marshal size {} vs {}",
-    //         raw.len(),
-    //         raw_pkt.len()
-    //     );
+        assert_eq!(
+            raw_pkt.len(),
+            p.marshal_size(),
+            "wrong computed marshal size"
+        );
 
-    //     assert_eq!(
-    //         raw, raw_pkt,
-    //         "TestBasic marshal: got {:?}, want {:?}",
-    //         raw, raw_pkt
-    //     );
-    //     Ok(())
-    // }
+        let raw = p.marshal()?;
+
+        assert_eq!(
+            raw_pkt.len(),
+            raw.len(),
+            "wrong raw marshal size {} vs {}",
+            raw.len(),
+            raw_pkt.len()
+        );
+
+        assert_eq!(
+            raw_pkt, raw,
+            "TestBasic marshal: got {:?}, want {:?}",
+            raw, raw_pkt
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_padding() -> Result<(), RTPError> {
+        let raw_pkt = Bytes::from_static(&[
+            0xa0, 0x60, 0x19, 0x58, 0x63, 0xff, 0x7d, 0x7c, 0x4b, 0x98, 0xd4, 0x0a, 0x67, 0x4d,
+            0x00, 0x29, 0x9a, 0x64, 0x03, 0xc0, 0x11, 0x3f, 0x2c, 0xd4, 0x04, 0x04, 0x05, 0x00,
+            0x00, 0x03, 0x03, 0xe8, 0x00, 0x00, 0xea, 0x60, 0x04, 0x00, 0x00, 0x03,
+        ]);
+
+        let mut packet = Packet::default();
+        packet.unmarshal(&raw_pkt.clone())?;
+        println!("{}", packet.payload.len());
+
+        let a = &raw_pkt[12..12 + 25];
+        let b = &packet.payload[..];
+
+        assert_eq!(a, b);
+        Ok(())
+    }
 
     // #[test]
     // fn test_extension() -> Result<(), RTPError> {
@@ -364,7 +387,7 @@ mod tests {
     //             ssrc: 476325762,
     //             ..Default::default()
     //         },
-    //         payload: raw_pkt[28..].into(),
+    //         ..Default::default()
     //     };
 
     //     let dst_data = p.marshal()?;
@@ -380,7 +403,7 @@ mod tests {
     // fn test_rfc_8285_two_byte_extension() -> Result<(), RTPError> {
     //     let mut p = Packet::default();
 
-    //     let raw_pkt: BytesMut = [
+    //     let raw_pkt: Bytes = [
     //         0x90, 0xe0, 0x69, 0x8f, 0xd9, 0xc2, 0x93, 0xda, 0x1c, 0x64, 0x27, 0x82, 0x10, 0x00,
     //         0x00, 0x07, 0x05, 0x18, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
     //         0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,

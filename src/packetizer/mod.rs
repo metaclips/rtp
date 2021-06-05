@@ -26,12 +26,12 @@ pub trait Depacketizer {
 
 pub type FnTimeGen = fn() -> Duration;
 
-struct Packetizer {
+struct Packetizer<P, S> {
     pub mtu: u16,
     pub payload_type: u8,
     pub ssrc: u32,
-    pub payloader: Box<dyn Payloader>,
-    pub sequencer: Box<dyn Sequencer>,
+    pub payloader: P,
+    pub sequencer: S,
     pub timestamp: u32,
     pub clock_rate: u32,
     pub abs_send_time: u8, //http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
@@ -43,8 +43,8 @@ pub fn new_packetizer(
     payload_type: u8,
     ssrc: u32,
     clock_rate: u32,
-    payloader: Box<dyn Payloader>,
-    sequencer: Box<dyn Sequencer>,
+    payloader: impl Payloader,
+    sequencer: impl Sequencer,
 ) -> impl PacketizerInterface {
     Packetizer {
         mtu,
@@ -59,7 +59,7 @@ pub fn new_packetizer(
     }
 }
 
-impl PacketizerInterface for Packetizer {
+impl<S: Sequencer, P: Payloader> PacketizerInterface for Packetizer<P, S> {
     fn enable_abs_send_time(&mut self, value: u8) {
         self.abs_send_time = value
     }
